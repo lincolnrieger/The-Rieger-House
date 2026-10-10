@@ -1,0 +1,19 @@
+# Fly.io config. Change `app` to a unique name before the first deploy.
+app = "rieger-house"
+primary_region = "syd"
+
+[build]
+
+[env]
+  TRUST_PROXY = "1"
+
+[mounts]
+  source = "rieger_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
