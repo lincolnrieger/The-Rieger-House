@@ -1,6 +1,6 @@
 -- The Rieger House schema.
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id              INTEGER PRIMARY KEY,
   name            TEXT NOT NULL,
   role            TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'member')),
@@ -14,7 +14,7 @@ CREATE TABLE users (
   created_at      INTEGER NOT NULL
 );
 
-CREATE TABLE responses (
+CREATE TABLE IF NOT EXISTS responses (
   user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   date        TEXT NOT NULL,
   home        INTEGER,
@@ -25,21 +25,21 @@ CREATE TABLE responses (
   updated_by  INTEGER,
   PRIMARY KEY (user_id, date)
 );
-CREATE INDEX responses_date ON responses(date);
+CREATE INDEX IF NOT EXISTS responses_date ON responses(date);
 
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
   token_hash  TEXT PRIMARY KEY,
   user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expires_at  INTEGER NOT NULL
 );
 
-CREATE TABLE settings (
+CREATE TABLE IF NOT EXISTS settings (
   key    TEXT PRIMARY KEY,
   value  TEXT NOT NULL
 );
 
 -- PIN attempts per IP address, to slow down guessing.
-CREATE TABLE throttle (
+CREATE TABLE IF NOT EXISTS throttle (
   ip        TEXT PRIMARY KEY,
   count     INTEGER NOT NULL,
   reset_at  INTEGER NOT NULL

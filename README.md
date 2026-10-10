@@ -82,7 +82,7 @@ npx wrangler secret put SETUP_CODE
 npm run deploy
 ```
 
-Wrangler prints the address, for example `https://rieger-house.<you>.workers.dev`.
+Wrangler prints the address, for example `https://the-rieger-house.<you>.workers.dev`.
 To use your own domain, add it under the Worker's **Settings → Domains & Routes** in
 the Cloudflare dashboard.
 
