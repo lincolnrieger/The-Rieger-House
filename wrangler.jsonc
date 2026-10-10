@@ -17,8 +17,7 @@
     {
       "binding": "DB",
       "database_name": "rieger-house",
-      // Paste the ID printed by `npx wrangler d1 create rieger-house` here.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "267cbc23-96c9-425c-a928-4caeb07bdf69",
       "migrations_dir": "migrations"
     }
   ]
