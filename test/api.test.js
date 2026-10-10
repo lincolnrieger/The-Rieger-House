@@ -1,27 +1,11 @@
 'use strict';
 
-const { test, before, after } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const http = require('node:http');
-const { createApp } = require('../src/server');
 
-let server, base, dataDir;
-
-before(async () => {
-  dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rh-test-'));
-  const app = createApp({ dataDir, setupCode: '424242', log: () => {} });
-  server = http.createServer(app.handler);
-  await new Promise((r) => server.listen(0, '127.0.0.1', r));
-  base = `http://127.0.0.1:${server.address().port}`;
-});
-
-after(() => {
-  server.close();
-  fs.rmSync(dataDir, { recursive: true, force: true });
-});
+// Run with `npm test`, which starts wrangler dev and sets BASE_URL.
+const base = process.env.BASE_URL;
+if (!base) throw new Error('Run the tests with npm test.');
 
 function client() {
   let cookie = '';

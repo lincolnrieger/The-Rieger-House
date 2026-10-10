@@ -212,7 +212,7 @@ function renderSetup() {
   } },
     h('label', { class: 'field' }, h('span', {}, 'Setup code'),
       h('input', { name: 'code', inputMode: 'numeric', autocomplete: 'one-time-code', required: true }),
-      h('small', {}, 'It is printed in the server log the first time the app starts.')),
+      h('small', {}, 'This is the SETUP_CODE secret you set in Cloudflare.')),
     h('label', { class: 'field' }, h('span', {}, 'Your name (admin)'),
       h('input', { name: 'name', value: 'Lincoln', maxLength: 30, required: true })),
     h('label', { class: 'field' }, h('span', {}, 'Your PIN, 6 to 8 digits'),

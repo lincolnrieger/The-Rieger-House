@@ -5,12 +5,17 @@
   "description": "Who's home for dinner tonight. A tiny family dinner tracker.",
   "license": "UNLICENSED",
   "engines": {
-    "node": ">=22.13"
+    "node": ">=20"
   },
   "scripts": {
-    "start": "node --disable-warning=ExperimentalWarning src/server.js",
-    "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
-    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
-    "reset-pin": "node --disable-warning=ExperimentalWarning src/reset-pin.js"
+    "dev": "wrangler dev",
+    "db:migrate:local": "wrangler d1 migrations apply rieger-house --local",
+    "db:migrate": "wrangler d1 migrations apply rieger-house --remote",
+    "deploy": "wrangler deploy",
+    "test": "node test/run.js",
+    "reset-pin": "node scripts/reset-pin.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.149.0"
   }
 }

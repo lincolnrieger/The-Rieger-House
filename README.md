@@ -29,103 +29,106 @@ Each person updates their own plans with two or three taps.
 
 ## Tech stack
 
-Deliberately small, with **no npm dependencies**:
+Everything runs on **Cloudflare**:
 
-- **Server:** Node.js 22.13 or newer, using only built-in modules (`node:http`,
-  `node:crypto`, `node:sqlite`). The whole backend lives in `src/server.js` and
-  `src/db.js`.
-- **Database:** one SQLite file at `data/rieger-house.db`, or wherever `DATA_DIR`
-  points.
-- **Frontend:** plain HTML, CSS and JavaScript in `public/`, with no build step.
-  A service worker and web manifest make it installable.
+- **Cloudflare Workers.** `src/worker.js` is the API (`/api/*`). It has no
+  dependencies and no build step.
+- **Workers Static Assets.** Serves the frontend in `public/`: plain HTML, CSS and
+  JavaScript, a service worker and a web manifest. Security headers live in
+  `public/_headers`.
+- **Cloudflare D1.** Stores everything in a SQLite database. The schema is in
+  `migrations/`.
+- **Wrangler.** Used for local development, migrations and deploys. It's the only
+  dev dependency.
+
+Cloudflare's free plan covers a family easily.
 
 ### Security
 
-- PINs are hashed with scrypt and never stored in plain text.
-- Sessions use random tokens kept in an `HttpOnly`, `SameSite=Lax` cookie, which
-  is also `Secure` over HTTPS. Only a SHA-256 hash of each token is stored.
+- PINs are hashed with PBKDF2-SHA256 (100,000 iterations, random salt) and never
+  stored in plain text.
+- Sessions use random tokens kept in an `HttpOnly`, `Secure`, `SameSite=Lax`
+  cookie. Only a SHA-256 hash of each token is stored.
 - Five wrong PINs lock that account for a while, with a longer lock each time.
   There is also a limit on attempts from any single IP address. Resetting the PIN
   from Admin unlocks the account.
 - The admin PIN must be at least 6 digits. Everyone else uses 4 to 8 digits.
-- First-time setup needs a one-off **setup code** from the server log, so nobody
-  else can claim the admin account on a fresh server.
+- First-time setup needs the `SETUP_CODE` secret, so nobody else can claim the
+  admin account on a fresh deploy.
 - Requests that change data must come from the app's own origin, in JSON. Strict
   security headers are set, including CSP and frame blocking.
 - **Permissions:** anyone signed in can view the dinner list. People can change
   their own plans. Only the admin can change anyone's plans, unless the admin
   turns on "Let everyone update anyone's plans". Only the admin can see Admin.
 
+## Deploy to Cloudflare
+
+You need a free Cloudflare account and Node.js 20 or newer.
+
+```bash
+npm install
+npx wrangler login
+
+# 1. Create the database, then paste the database_id it prints into wrangler.jsonc
+npx wrangler d1 create rieger-house --location oc   # oc = Oceania; weur = Western Europe
+
+# 2. Create the tables
+npm run db:migrate
+
+# 3. Choose a setup code (any number you like; you'll type it once)
+npx wrangler secret put SETUP_CODE
+
+# 4. Deploy
+npm run deploy
+```
+
+Wrangler prints the address, for example `https://rieger-house.<you>.workers.dev`.
+To use your own domain, add it under the Worker's **Settings → Domains & Routes** in
+the Cloudflare dashboard.
+
+### First-time setup
+
+1. Open the app, enter your setup code and choose Lincoln's PIN. Grant, Emma and
+   Elijah are added for you.
+2. In Admin, open each person and **Set a PIN** for them.
+3. Lincoln starts off the dinner list. To check in for dinner too, turn on *On the
+   dinner list* for Lincoln in Admin.
+
+The setup code stops working once setup is done. You can delete the secret
+afterwards with `npx wrangler secret delete SETUP_CODE`.
+
+### Updating
+
+After changing code, run `npm run deploy`. If a new file appears in `migrations/`,
+run `npm run db:migrate` first.
+
 ## Run it locally
 
 ```bash
-npm start          # http://localhost:3000
-npm run dev        # same, restarts when you edit the code
-npm test           # API tests
+npm install
+cp .dev.vars.example .dev.vars    # local setup code: 111111
+npm run db:migrate:local
+npm run dev                        # http://localhost:8787
+npm test                           # API tests against a throwaway local database
 ```
 
-The first time the app starts, it prints a **setup code** in the terminal. Open
-the app, enter the code and choose Lincoln's PIN. Grant, Emma and Elijah are added
-for you. Then, in Admin, open each person and **Set a PIN** for them.
-
-Lincoln starts off the dinner list. To check in for dinner too, turn on *On the
-dinner list* for Lincoln in Admin.
-
-Environment variables (all optional):
-
-| Variable      | Default  | Purpose |
-|---------------|----------|---------|
-| `PORT`        | `3000`   | Port to listen on |
-| `DATA_DIR`    | `./data` | Folder for the SQLite database |
-| `SETUP_CODE`  | random   | Use a fixed setup code instead of a random one |
-| `TRUST_PROXY` | off      | Set to `1` behind a proxy or host that terminates HTTPS (Fly, Render, Railway, nginx) |
-
-## Deploy
-
-The app needs a **persistent disk** for the SQLite file. It also needs **HTTPS**,
-which phones require before they will install it as an app. Any of these work.
-
-### Fly.io (recommended, about free for a family)
-
-```bash
-fly launch --no-deploy --copy-config   # pick a unique app name when asked
-fly volumes create rieger_data --size 1 --region syd
-fly deploy
-fly logs                                # find the setup code here
-```
-
-Then open `https://<your-app>.fly.dev` and run setup. Set `primary_region` in
-`fly.toml`, and the `--region` above, to the region nearest you (`syd` is Sydney,
-`lhr` is London).
-
-### Render or Railway
-
-Deploy the repo using the included `Dockerfile`. Attach a persistent disk or
-volume mounted at `/data`, and set `TRUST_PROXY=1`. Read the setup code from the
-deploy logs.
-
-### A computer at home (Raspberry Pi, NAS)
-
-```bash
-docker build -t rieger-house .
-docker run -d --restart unless-stopped -p 8080:8080 -v rieger-data:/data rieger-house
-docker logs <container>   # setup code
-```
-
-Put it behind HTTPS (for example Caddy, or a Cloudflare Tunnel) and set
-`TRUST_PROXY=1`.
-
-### Backups
-
-Everything lives in one file, `rieger-house.db`, in the data folder. Copy it
-somewhere safe now and then. With Fly, use `fly ssh sftp get /data/rieger-house.db`.
+Local development uses a local copy of D1 under `.wrangler/`, never your live data.
 
 ## Forgotten PINs
 
 - **A family member:** Lincoln opens Admin, taps their name and sets a new PIN.
-- **Lincoln:** run this on the server, then sign in with the new PIN:
+- **Lincoln:** run this from the project folder while logged in to Wrangler, then
+  sign in with the new PIN:
 
   ```bash
   npm run reset-pin -- Lincoln 246810
-  # On Fly: fly ssh console -C "npm run reset-pin -- Lincoln 246810"
   ```
+
+## Backups
+
+D1 keeps 30 days of history automatically (Time Travel). To restore, see
+`npx wrangler d1 time-travel --help`. To save a copy yourself:
+
+```bash
+npx wrangler d1 export rieger-house --remote --output backup.sql
+```

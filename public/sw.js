@@ -2,7 +2,7 @@
 
 // Caches the app shell so it opens instantly and installs as an app.
 // Plans themselves always come live from the server.
-const CACHE = 'rieger-house-v1';
+const CACHE = 'rieger-house-v2';
 const SHELL = ['/', '/app.css', '/app.js', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {
